@@ -1,0 +1,56 @@
+name: Deploy SSH
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      image-tag:
+        type: string
+        default: ''
+    secrets:
+      DEPLOY_HOST:
+        required: true
+      DEPLOY_USER:
+        required: true
+      DEPLOY_SSH_KEY:
+        required: true
+      DEPLOY_KNOWN_HOSTS:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: deploy-${{ inputs.app }}
+      cancel-in-progress: false
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          APP: ${{ inputs.app }}
+          TAG: ${{ inputs.image-tag }}
+        run: |
+          tag="${TAG:-sha-${GITHUB_SHA::7}}"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 "$USER@$HOST" \
+            "/opt/waypoint/infra/scripts/deploy.sh $(printf '%q' "$APP") $(printf '%q' "$tag")"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_deploy

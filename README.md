@@ -35,3 +35,19 @@ jobs:
     uses: Waypoint-Studio/.github/.github/workflows/docker-publish.yml@main
     secrets: inherit
 ```
+
+### `deploy-ssh.yml`
+
+Despliega una app en el droplet por SSH ejecutando `scripts/deploy.sh` del repo `infra`. Por defecto usa el tag `sha-<commit>` que publica `docker-publish.yml`.
+
+```yaml
+jobs:
+  deploy:
+    needs: docker
+    uses: Waypoint-Studio/.github/.github/workflows/deploy-ssh.yml@main
+    with:
+      app: mi-app
+    secrets: inherit
+```
+
+Secretos en el repo de la app: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` y `DEPLOY_KNOWN_HOSTS` (salida de `ssh-keyscan <host>`).
