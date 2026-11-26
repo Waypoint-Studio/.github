@@ -1,0 +1,61 @@
+name: Node CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: '22'
+      working-directory:
+        type: string
+        default: '.'
+      run-e2e:
+        type: boolean
+        default: false
+      sonar:
+        type: boolean
+        default: false
+    secrets:
+      SONAR_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:cov
+      - if: inputs.run-e2e
+        run: pnpm test:e2e
+      - run: pnpm build
+
+      - if: inputs.sonar
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: ${{ inputs.working-directory }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
