@@ -1,0 +1,30 @@
+name: Bug
+description: Reportar un error
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: Qué pasa y qué debería pasar.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Entorno
+      placeholder: production / staging / local, versión
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs o capturas
+      render: shell
